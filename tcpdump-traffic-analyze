@@ -1,0 +1,141 @@
+### **`tcpdump` bilan real vaqtdagi trafikni va hujumlarni nazorat qilish**  
+
+`tcpdump` – tarmoq interfeysida real vaqtdagi paketlarni ushlash va tahlil qilish uchun ishlatiladigan kuchli vosita. Bu vosita **hujumlarni aniqlash, tarmoq diagnostikasi va trafik monitoringi** uchun foydali.  
+
+---
+
+## **1. `tcpdump` ni ishga tushirish**  
+Agar `tcpdump` tizimingizda o‘rnatilmagan bo‘lsa:  
+- **Linux (Ubuntu/Debian):**  
+  ```bash
+  sudo apt install tcpdump
+  ```
+- **RedHat/CentOS:**
+  ```bash
+  sudo yum install tcpdump
+  ```
+- **MacOS:**
+  ```bash
+  brew install tcpdump
+  ```
+
+Tarmoq interfeyslarini ko‘rish:
+```bash
+tcpdump -D
+```
+Misol: `eth0` interfeysidan trafikni ushlash:
+```bash
+sudo tcpdump -i eth0
+```
+
+---
+
+## **2. Ma’lum bir trafikni tahlil qilish**  
+
+### **Filtrlash**  
+- Faqat **HTTP (80) va HTTPS (443) trafikni ko‘rish**:
+  ```bash
+  sudo tcpdump -i eth0 port 80 or port 443
+  ```
+- Faqat **ma’lum IP-manzilga tegishli trafikni ko‘rish**:
+  ```bash
+  sudo tcpdump -i eth0 host 192.168.1.10
+  ```
+- Faqat **kiruvchi trafikni tahlil qilish**:
+  ```bash
+  sudo tcpdump -i eth0 src host 192.168.1.10
+  ```
+- Faqat **UDP yoki TCP trafikni ko‘rish**:
+  ```bash
+  sudo tcpdump -i eth0 udp
+  sudo tcpdump -i eth0 tcp
+  ```
+- **DNS so‘rovlarini tekshirish**:
+  ```bash
+  sudo tcpdump -i eth0 port 53
+  ```
+- **ICMP (ping) hujumlarini tekshirish**:
+  ```bash
+  sudo tcpdump -i eth0 icmp
+  ```
+
+---
+
+## **3. Tarmoqdagi hujumlarni aniqlash**  
+
+### **1) Port skanerlash (Nmap yoki boshqa vositalardan)**
+Hujumchilar tarmoqdagi ochiq portlarni topish uchun skanerlashni amalga oshiradi.  
+Ularni `tcpdump` orqali aniqlash:  
+```bash
+sudo tcpdump -i eth0 "tcp[tcpflags] & (tcp-syn) != 0"
+```
+Bu **ko‘p sonli SYN paketlarini** ko‘rsatadi, bu esa **SYN Flood hujumi yoki port skaneri** bo‘lishi mumkin.
+
+---
+
+### **2) DoS/DDoS hujumlarini aniqlash**  
+- **Ko‘p sonli SYN so‘rovlar** (`SYN Flood` hujumi):  
+  ```bash
+  sudo tcpdump -i eth0 "tcp[tcpflags] == tcp-syn"
+  ```
+- **ICMP Flood (Ping of Death yoki Smurf Attack)**:  
+  ```bash
+  sudo tcpdump -i eth0 icmp and greater 1000
+  ```
+
+---
+
+### **3) DNS Spoofing yoki DNS hijacking**  
+Hujumchi qalbaki DNS javoblarini jo‘natishi mumkin.  
+```bash
+sudo tcpdump -i eth0 port 53 and udp
+```
+Agar g‘alati yoki **o‘zgaruvchan IP-larga ega DNS javoblar** paydo bo‘lsa, ehtiyot bo‘lish kerak.
+
+---
+
+### **4) ARP Spoofing aniqlash (MITM hujumi)**  
+Hujumchi tarmoqdagi qurilmalar o‘rtasida o‘zini **tarmoq routeri** qilib ko‘rsatib, ma’lumotlarni o‘g‘irlashi mumkin.  
+```bash
+sudo tcpdump -i eth0 arp
+```
+Agar bitta **MAC-manzil bir nechta IP uchun ARP javoblarini qaytarsa**, ARP spoofing ehtimoli bor.
+
+---
+
+### **5) Kirish parollarining ochiq uzatilishi (sniffing)**  
+Agar autentifikatsiya shifrlanmagan holda amalga oshirilsa (masalan, **FTP, Telnet, HTTP**), quyidagi buyruq orqali **login va parollarni** ushlash mumkin:  
+```bash
+sudo tcpdump -i eth0 port 21 or port 23 or port 80 -A
+```
+Agar login va parollar oddiy matn shaklida ko‘rinib tursa, **shifrlash (HTTPS, SSH, SFTP) talab etiladi.**
+
+---
+
+## **4. Loglarni faylga yozib olish va tahlil qilish**  
+Trafikni faylga saqlash va keyin tahlil qilish uchun:  
+```bash
+sudo tcpdump -i eth0 -w trafik.pcap
+```
+Keyin bu faylni **Wireshark** yoki boshqa tahlil vositalari bilan ochish mumkin:  
+```bash
+wireshark trafik.pcap
+```
+
+Agar yozilgan trafikni qayta o‘qimoqchi bo‘lsangiz:  
+```bash
+sudo tcpdump -r trafik.pcap
+```
+
+---
+
+## **5. Xulosa**  
+✅ **Tarmoq trafikini real vaqt rejimida kuzatish**  
+✅ **Hujumlarni va g‘ayritabiiy trafikni aniqlash**  
+✅ **Port skanerlash, DoS, MITM hujumlarini tekshirish**  
+✅ **DNS va ARP hujumlarini monitoring qilish**  
+✅ **Trafikni yozib olish va tahlil qilish**
+
+Agar haqiqiy hujumlar yoki g‘alati harakatlarni sezsangiz, qo‘shimcha himoya choralarini ko‘rish kerak (firewall qoidalarini yangilash, IDS/IPS tizimlari o‘rnatish). 
+
+Siz qanday holat yoki muhitda **tcpdump** dan foydalanmoqchisiz?
