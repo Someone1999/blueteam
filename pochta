@@ -1,0 +1,165 @@
+Agar bu savol **Blue Team CTF** doirasida berilgan bo‘lsa, demak, asosiy maqsad **shubhali elektron pochta xabarini tahlil qilish, zararli kontentni aniqlash va hujum usulini tushunish** bo‘ladi. Quyida **CTF yechimlariga mos keladigan** yakuniy strategiyani taqdim etaman.  
+
+---
+
+## **1. Xabarni olish va asosiy tekshiruv**  
+CTF senariysida sizga shubhali elektron pochta `.eml` yoki `.msg` formatida berilishi mumkin. Uni ochish va tahlil qilish uchun:  
+
+### **Linux Terminalda xabarni ochish:**  
+```bash
+cat email.eml
+```
+Yoki yanada yaxshi ko‘rinish uchun:
+```bash
+less email.eml
+```
+
+**Muhim joylar:**  
+- **"From" va "Reply-To" manzillari** – Manba soxta emasmi?  
+- **"Received" maydoni** – Xabar qaysi IP orqali kelgan?  
+- **SPF, DKIM, DMARC yozuvlari** – Xabar manbasi ishonchli emasmi?  
+- **Phishing yoki zararli linklar** – HTML kontent ichida yashiringan havolalar bormi?  
+- **Zararli fayl ilovalari** – `.exe`, `.js`, `.vbs`, `.docm`, `.xlsm`, `.zip` yoki `.rar` mavjudmi?  
+
+---
+
+## **2. Elektron pochta sarlavhalarini tahlil qilish**  
+Pochta sarlavhalari (headers) orqali hujumchining asl manbasini aniqlash mumkin.  
+
+**Sarlavhalarni chiqarish:**  
+```bash
+grep -i "Received:" email.eml
+```
+Ko‘p marta **"Received:"** maydonlari bo‘lsa, eng quyi qatordagi (birinchi server) **asl jo‘natuvchini** ko‘rsatadi.  
+
+---
+
+### **SPF, DKIM, DMARC tekshirish**  
+- SPF tekshirish:  
+  ```bash
+  dig TXT example.com
+  ```
+  Agar **`v=spf1 -all`** ko‘rsatilgan bo‘lsa, bu domen hech qanday elektron pochta jo‘natmaydi.  
+- DKIM tekshirish:  
+  ```bash
+  dig TXT default._domainkey.example.com
+  ```
+  Agar DKIM mavjud bo‘lmasa yoki noto‘g‘ri bo‘lsa, **soxta elektron pochta** bo‘lishi mumkin.  
+- DMARC tekshirish:  
+  ```bash
+  dig TXT _dmarc.example.com
+  ```
+
+---
+
+## **3. Havola va zararli kodni tahlil qilish**  
+Shubhali e-mail ichidagi havolalar **HTML kod** ichida yashiringan bo‘lishi mumkin.  
+
+**Barcha URL-larni chiqarish:**  
+```bash
+grep -o 'http[s]*://[^"]*' email.eml
+```
+
+Agar **g‘alati yoki phishing domenlar** chiqsa, ularni tekshirish kerak:  
+- **VirusTotal** → [https://www.virustotal.com](https://www.virustotal.com)  
+- **URLScan.io** → [https://www.urlscan.io](https://www.urlscan.io)  
+- **CheckPhish** → [https://checkphish.ai](https://checkphish.ai)  
+
+**curl orqali tekshirish:**  
+```bash
+curl -I http://suspicious-site.com
+```
+Agar sayt **302 redirect** bilan boshqa manzilga yo‘naltirsa yoki **IP-manzil noma’lum** bo‘lsa, ehtiyot bo‘lish kerak.
+
+---
+
+## **4. Ilovalarni (attachments) tahlil qilish**  
+Agar pochta xabariga ilova qilingan fayl bo‘lsa, uni **malware bo‘lishi ehtimoli** yuqori.  
+
+**Ilovalarni chiqarish:**  
+```bash
+grep -i "Content-Disposition: attachment" email.eml
+```
+
+Agar `.zip`, `.docm`, `.xlsm`, `.js`, `.exe` yoki `.pdf` bo‘lsa, bu zararli bo‘lishi mumkin.  
+
+**Faylni VirusTotal’da tekshirish:**  
+```bash
+sha256sum suspicious_file.docx
+```
+Keyin **hashni** [https://www.virustotal.com](https://www.virustotal.com) ga joylashtiring.  
+
+---
+
+## **5. `tcpdump` orqali real vaqtdagi phishing trafigini tekshirish**  
+Agar kimdir phishing linkka bosgan bo‘lsa, `tcpdump` orqali tarmoqdagi **shubhali HTTP yoki DNS so‘rovlarini** kuzatish mumkin.  
+
+- **HTTP GET so‘rovlarini tekshirish**  
+  ```bash
+  sudo tcpdump -i eth0 port 80 and tcp
+  ```
+- **DNS so‘rovlarini tekshirish (phishing sayt aniqlash uchun)**  
+  ```bash
+  sudo tcpdump -i eth0 port 53
+  ```
+- **Alohida IP-manzilga so‘rovlarni tekshirish**  
+  ```bash
+  sudo tcpdump -i eth0 host 192.168.1.100
+  ```
+
+Agar **notanish domen yoki IP-manzil** ko‘rsatilsa, bu zararli sayt bo‘lishi mumkin.
+
+---
+
+## **6. MITM hujumini tekshirish (ARP Spoofing)**  
+Ba’zan phishing hujumlari **MITM (Man-in-the-Middle)** orqali amalga oshiriladi. **ARP spoofing** aniqlash uchun:  
+
+```bash
+sudo tcpdump -i eth0 arp
+```
+Agar **bir xil MAC-manzil bir nechta IP-manzil uchun** qaytib kelayotgan bo‘lsa, ARP poisoning bo‘lishi mumkin.
+
+---
+
+## **7. Himoya choralari**  
+✅ **Shubhali domen va IP-manzillarni bloklash**  
+```bash
+sudo iptables -A OUTPUT -d phishing-site.com -j DROP
+```
+✅ **Xodimlarni phishing va spear-phishing hujumlari haqida ogohlantirish**  
+✅ **Spam filtrlash tizimlarini yangilash (Google Workspace, Microsoft Exchange)**  
+✅ **Shubhali elektron pochtalarni sandbox muhitda tekshirish (Cuckoo Sandbox, Any.Run)**  
+
+---
+
+## **8. CTF kontekstida muhim bo‘lgan kalit ma’lumotlar**  
+Ko‘p CTF-larda flag (bayroq) quyidagi formatda bo‘ladi:  
+```
+flag{something_interesting_here}
+```
+Bu flag **email ichida yashiringan** bo‘lishi mumkin:  
+- **HTML kontent ichida**  
+- **Attachment ichidagi EXIF ma’lumotlarda**  
+- **Base64 encoded qismida**  
+
+**Base64 kodlangan joylarni chiqarish uchun:**  
+```bash
+grep -o '[A-Za-z0-9+/=]\{20,\}' email.eml | base64 -d
+```
+Agar bayroq shubhali havola ichida bo‘lsa, **redirectlarni tekshirish** kerak:  
+```bash
+curl -L phishing-site.com
+```
+
+---
+
+## **Xulosa (CTF uchun muhim yondashuv)**  
+🔹 **Pochta sarlavhalarini o‘rganish va hujumchini aniqlash**  
+🔹 **Havolalar va domenlarni phishing saytlar bilan solishtirish**  
+🔹 **Malware yoki zararli makroslar borligini tekshirish**  
+🔹 **tcpdump orqali real vaqtdagi hujumlarni kuzatish**  
+🔹 **CTF flag-ni topish va submit qilish**  
+
+Agar siz CTF uchun shubhali emailni tahlil qilayotgan bo‘lsangiz, **elektron pochta faylini `.eml` yoki `.msg` shaklida yuklab, ochib, flagni topishga harakat qiling!**  
+
+Siz aynan qaysi turdagi CTF senariysida qatnashyapsiz? 🤔
