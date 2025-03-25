@@ -1,0 +1,194 @@
+### **Blue Team CTF – 1-savol: Infratuzilmadagi Zaif Sozlamalarni Aniqlash va Bartaraf Etish**  
+
+CTF muhitida sizga tizim yoki infratuzilmada zaif sozlamalar mavjudligi haqida ma’lumot berilishi mumkin. Bu zaifliklarni aniqlash va bartaraf etish uchun quyidagi **Blue Team metodlari** ishlatiladi.  
+
+---
+
+## **1. Tizimdagi zaif sozlamalarni aniqlash uchun vositalar**
+**A. Operatsion tizim zaifliklarini tekshirish**  
+✅ **Linux:**  
+```bash
+uname -a   # Kernel versiyasini tekshirish
+cat /etc/os-release  # OS versiyasi
+sysctl -a | grep "kernel"
+```
+✅ **Windows (PowerShell):**  
+```powershell
+systeminfo
+Get-WindowsFeature | Where-Object { $_.Installed -eq $false }
+```
+**Zaiflik:** Eskirgan operatsion tizim yoki yangilanishlar o‘rnatilmagan.  
+**Yechim:** So‘nggi **OS yangilanishlarini o‘rnatish** va zaif versiyalarni yangilash.
+
+---
+
+**B. Ochiq portlarni tekshirish (Nmap, Netstat)**  
+**Linux:**  
+```bash
+sudo netstat -tulnp   # Faol portlarni ko‘rish
+sudo lsof -i -P -n    # Portlarni ochgan jarayonlarni ko‘rish
+```
+**Windows:**  
+```powershell
+netstat -ano
+```
+**Nmap orqali tarmoqni skanerlash:**  
+```bash
+nmap -sV -p- <server_IP>
+```
+**Zaiflik:** Keraksiz yoki eskirgan xizmatlar ochiq turibdi (masalan, Telnet, FTP).  
+**Yechim:**  
+✅ **Keraksiz portlarni yopish:**  
+```bash
+sudo ufw deny 23  # Telnetni bloklash
+```
+✅ **Shifrlanmagan protokollarni o‘chirib tashlash (Telnet -> SSH, FTP -> SFTP)**  
+
+---
+
+## **2. Zaif autentifikatsiya va hujumlarni oldini olish**
+**A. Foydalanuvchi parollari va sudo sozlamalarini tekshirish**  
+✅ **So‘nggi kirishlarni tekshirish:**  
+```bash
+lastlog
+cat /etc/passwd | awk -F: '{ print $1}'   # Barcha foydalanuvchilar ro‘yxati
+```
+✅ **So‘nggi sudo ishlatish tarixini tekshirish:**  
+```bash
+cat /var/log/auth.log | grep "sudo"
+```
+**Zaiflik:** Juda ko‘p foydalanuvchiga sudo ruxsatlari berilgan yoki oddiy parollar ishlatilgan.  
+**Yechim:**  
+- Keraksiz sudo ruxsatlarini olib tashlash:  
+  ```bash
+  sudo deluser user sudo
+  ```
+- Parollarni tekshirish va kuchli parol talabini majburiy qilish.  
+  ```bash
+  sudo nano /etc/security/pwquality.conf
+  ```
+
+---
+
+## **3. Xavfsiz SSH sozlamalarini tekshirish**  
+**A. Root kirishini bloklash va kuchli shifrlashni yoqish**  
+```bash
+sudo nano /etc/ssh/sshd_config
+```
+O‘zgartirishlar:  
+```bash
+PermitRootLogin no
+PasswordAuthentication no
+KexAlgorithms curve25519-sha256@libssh.org
+```
+So‘ng, SSH xizmatini qayta yuklash:  
+```bash
+sudo systemctl restart sshd
+```
+**Zaiflik:** Root foydalanuvchisi orqali SSH orqali bevosita tizimga kirish mumkin.  
+**Yechim:** Root foydalanuvchi uchun SSH loginni o‘chirib qo‘yish va faqat **public key authentication** ishlatish.  
+
+---
+
+## **4. Zaif servislarga qarshi tekshiruv va muhofaza qilish**
+**A. Fail2Ban orqali brute-force hujumlardan himoya qilish**  
+✅ **Fail2Ban o‘rnatish va ishga tushirish:**  
+```bash
+sudo apt install fail2ban -y
+sudo systemctl enable fail2ban --now
+```
+✅ **SSH uchun avtomatik bloklashni sozlash:**  
+```bash
+sudo nano /etc/fail2ban/jail.local
+```
+Qo‘shish:  
+```ini
+[sshd]
+enabled = true
+maxretry = 3
+bantime = 600
+```
+✅ **Fail2Ban xizmatini qayta yuklash:**  
+```bash
+sudo systemctl restart fail2ban
+```
+**Zaiflik:** SSH yoki boshqa xizmatlarga **brute-force hujumlar** mumkin.  
+**Yechim:** **Fail2Ban yoki iptables orqali avtomatik bloklashni yoqish.**  
+
+---
+
+## **5. Loglarni tahlil qilish va monitoring**
+**A. Loglar ichidan shubhali harakatlarni qidirish**  
+✅ **Linux uchun:**  
+```bash
+sudo cat /var/log/auth.log | grep "Failed password"
+sudo cat /var/log/syslog | tail -n 50
+```
+✅ **Windows Event Log tekshirish (PowerShell):**  
+```powershell
+Get-EventLog -LogName Security -Newest 20
+```
+**Zaiflik:** Ko‘p marta noto‘g‘ri parol bilan tizimga kirishga urinishlar bor.  
+**Yechim:** Keraksiz urinishlarni bloklash va monitoring qilish.
+
+---
+
+## **6. Firewall qoidalarini tekshirish va himoyalash**
+✅ **Keraksiz portlarni yopish va ruxsatlarni cheklash**  
+```bash
+sudo ufw status verbose
+sudo ufw default deny incoming
+sudo ufw allow 22/tcp  # Faqat SSH ga ruxsat berish
+sudo ufw enable
+```
+**Zaiflik:** Tizim **barcha kiruvchi so‘rovlarni** qabul qiladi.  
+**Yechim:** **Faqat zarur xizmatlarni ochish va boshqa barcha kiruvchi so‘rovlarni bloklash.**
+
+---
+
+## **7. Docker va Kubernetes xavfsizligini tekshirish**  
+**A. Docker konteynerlarini tekshirish**  
+```bash
+docker ps -a  # Faol konteynerlarni ko‘rish
+docker images  # Yangi zararli image’lar bormi?
+docker top <container_id>  # Ichki jarayonlarni tekshirish
+```
+**Zaiflik:** Docker konteynerlari root huquqlari bilan ishlatilgan.  
+**Yechim:** Root huquqlarini cheklash va aniq ruxsatlar berish.  
+```bash
+docker run --user 1001:1001 mycontainer
+```
+
+---
+
+## **8. Tarmoq trafikini kuzatish (tcpdump & Wireshark)**
+Agar **shubhali tarmoq harakatlari** aniqlansa, real vaqtda kuzatish mumkin.  
+```bash
+sudo tcpdump -i eth0 port not 22
+```
+Yoki faqat **DNS so‘rovlarini tahlil qilish:**  
+```bash
+sudo tcpdump -i eth0 port 53
+```
+**Zaiflik:** No‘rinli yoki zararli trafik kuzatilmoqda.  
+**Yechim:** IDS/IPS (Snort yoki Suricata) o‘rnatish va trafikni filtrlash.
+
+---
+
+## **Xulosa**
+### **🔹 Zaifliklar:**
+✅ **Eskirgan OS yoki servislar (Kernel versiyasini yangilash)**  
+✅ **Keraksiz portlar ochiq (Nmap bilan tekshirish, UFW bilan bloklash)**  
+✅ **Zaif autentifikatsiya (Root loginni bloklash, kuchli parol talab qilish)**  
+✅ **Brute-force hujumlar (Fail2Ban yoki iptables bilan himoya qilish)**  
+✅ **Shubhali log harakatlari (Failed login attempts aniqlash, monitoring qilish)**  
+
+**🔹 Muhofaza qilish choralari:**  
+🚀 **Zaif portlarni yopish**  
+🚀 **Firewall qoidalarini kuchaytirish**  
+🚀 **Brute-force hujumlarga qarshi Fail2Ban o‘rnatish**  
+🚀 **Zararli IP-manzillarni bloklash**  
+🚀 **Docker va Kubernetes xavfsizligini tekshirish**  
+🚀 **Real vaqtdagi trafikni tahlil qilish va IDS/IPS sozlash**  
+
+Agar CTF vazifasida sizga **muayyan tizim yoki serverga kirish imkoniyati berilgan bo‘lsa**, yuqoridagi vositalarni ishlatib, **konkret zaifliklarni aniqlash va bartaraf etish** kerak. Siz aynan qanday turdagi infratuzilmada ishlayapsiz?
