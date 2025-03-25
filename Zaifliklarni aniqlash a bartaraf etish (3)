@@ -1,1 +1,190 @@
 
+### **Blue Team CTF: Hujumga Uchragan Ma’lumotlar Saqlash Infratuzilmasini Tekshirish va Tiklash**  
+
+Agar ma’lumotlar saqlanadigan infratuzilma tajovuzkorlar tomonidan egallangan bo‘lsa, bu jiddiy xavfsizlik buzilishi hisoblanadi. **Blue Team** vazifasi – ushbu hujumni tahlil qilish, zaif tomonlarni aniqlash va infratuzilmani tiklash.  
+
+---
+
+## **1. Hujum oqibatlarini baholash (Incident Response - IR)**  
+Dastlab, **hujum turi va ta’sir ko‘rsatish doirasini aniqlash** kerak:  
+
+✅ **Ma’lumotlar buzilganmi yoki o‘g‘irlanganmi?**  
+✅ **Qanday hujum usuli ishlatilgan (misol: Ransomware, SQL Injection, Zero-day eksploit)?**  
+✅ **Hujum qachon boshlangan va qancha davom etgan?**  
+✅ **Hujum qanday kirish nuqtalari orqali amalga oshirilgan?**  
+
+---
+
+## **2. O‘zlashtirilgan tizimlarni aniqlash va izolatsiya qilish**  
+Agar hujum hanuz davom etayotgan bo‘lsa, **zararlangan tizimlarni tarmoqdan ajratish (isolation)** kerak.  
+
+### **Linux uchun:**
+```bash
+ifconfig eth0 down   # Tarmoq interfeysini o‘chirish
+```
+yoki  
+```bash
+sudo iptables -A INPUT -s <hacker_IP> -j DROP  # Tajovuzkor IP-manzilini bloklash
+```
+  
+### **Windows uchun:**  
+```powershell
+Get-NetAdapter | Disable-NetAdapter -Confirm:$false
+```
+
+✅ **Alohida tarmoq muhitida zararli kodlar va jarayonlarni tekshirish**  
+✅ **Ma’lumotlarni himoya qilish va zarar yetkazilishining oldini olish**  
+
+---
+
+## **3. Loglarni tahlil qilish va hujum mexanizmini aniqlash**  
+Tizimga qanday hujum qilinganligini bilish uchun **loglarni o‘rganish** lozim.  
+
+### **Linux serverlar uchun:**
+```bash
+sudo cat /var/log/auth.log | grep "Failed password"
+sudo cat /var/log/syslog | grep "sshd"
+```
+  
+### **Windows Event Log tekshirish:**
+```powershell
+Get-EventLog -LogName Security -Newest 20
+```
+
+### **Zaifliklar va muammolarni aniqlash:**
+✅ **Ko‘p marta noto‘g‘ri login urinishlari (brute-force hujum)**  
+✅ **Administrator yoki root foydalanuvchisi nomidan kutilmagan faoliyat**  
+✅ **Keraksiz servislar yoki noxush jarayonlar**  
+
+---
+
+## **4. Ma’lumotlar bazasi va zaxira nusxalarni (backup) tekshirish**  
+**Tajovuzkorlar** ma’lumotlar bazasiga hujum qilgan bo‘lishi mumkin, ayniqsa **SQL Injection yoki noxush so‘rovlar** orqali.  
+
+✅ **Ma’lumotlar bazasining o‘zgartirilgan yoki shifrlanganligini tekshirish:**  
+```sql
+SELECT * FROM information_schema.tables;
+SELECT COUNT(*) FROM <table_name>;
+```
+  
+✅ **Oxirgi backup mavjudligini tekshirish:**  
+```bash
+ls -lh /var/backups/
+```
+  
+**Zaiflik:** Ma’lumotlar bazasi shifrlangan yoki zarar yetkazilgan bo‘lishi mumkin.  
+**Yechim:** **Backup nusxalaridan tiklash** va **SQL hujumlaridan himoyalash** (WAF orqali).  
+
+---
+
+## **5. Ochiq portlar va zaif servislarni tekshirish**  
+Tajovuzkorlar **portlar orqali tizimga kirgan bo‘lishi mumkin**, shuning uchun **Nmap yoki Netstat bilan skanerlash** kerak.  
+
+### **Linux:**
+```bash
+sudo netstat -tulnp
+sudo lsof -i -P -n
+```
+  
+### **Windows:**
+```powershell
+netstat -ano
+```
+
+✅ **Shubhali xizmatlarni aniqlash (masalan, noxush "reverse shell")**  
+✅ **Eskirgan va foydalanilmagan portlarni yopish**  
+✅ **Firewallda faqat kerakli portlarga ruxsat berish**  
+
+```bash
+sudo ufw deny 3306/tcp  # MySQL uchun tashqi kirishni bloklash
+sudo ufw allow 22/tcp   # Faqat SSH uchun ruxsat
+```
+
+---
+
+## **6. Zaif autentifikatsiya va root kirishini bloklash**  
+Hujumning asosiy sababi – zaif autentifikatsiya yoki **root loginning ochiqligi** bo‘lishi mumkin.  
+
+### **SSH sozlamalarini mustahkamlash:**  
+```bash
+sudo nano /etc/ssh/sshd_config
+```
+Ushbu o‘zgarishlarni amalga oshirish:  
+```ini
+PermitRootLogin no
+PasswordAuthentication no
+AllowUsers admin
+```
+So‘ng, SSH xizmatini qayta yuklash:  
+```bash
+sudo systemctl restart sshd
+```
+
+✅ **Root loginni bloklash**  
+✅ **Shifrlangan autentifikatsiyadan foydalanish**  
+
+---
+
+## **7. Keraksiz administrator huquqlarini olib tashlash**  
+Tizimda **keraksiz foydalanuvchilar yoki noxush huquqlar** borligini tekshirish:  
+
+### **Linux uchun:**
+```bash
+cat /etc/passwd | awk -F: '{ print $1}'
+cat /etc/sudoers
+```
+
+### **Windows uchun:**
+```powershell
+net localgroup administrators
+```
+
+✅ **Noxush foydalanuvchilarni olib tashlash**  
+✅ **Minimal huquqlar tamoyiliga rioya qilish**  
+
+---
+
+## **8. Xavfsizlik yamoqlarini o‘rnatish va monitoring tizimini yoqish**  
+**Agar zaiflik OS yoki dasturiy ta’minotdan kelib chiqqan bo‘lsa**, eng yangi xavfsizlik yamoqlarini o‘rnatish zarur.  
+
+### **Linux uchun:**  
+```bash
+sudo apt update && sudo apt upgrade -y
+```
+
+### **Windows uchun:**  
+```powershell
+Get-WindowsUpdate -Install -AcceptAll
+```
+
+✅ **Yangilangan va xavfsiz versiyalarni o‘rnatish**  
+✅ **Monitoring tizimi o‘rnatish (Tripwire, Suricata, Wazuh)**  
+
+---
+
+## **9. IDS/IPS (Intrusion Detection and Prevention Systems) o‘rnatish**  
+Hujumni oldini olish uchun **IDS yoki IPS tizimi o‘rnatish lozim**.  
+
+### **Snort IDS orqali tarmoq monitoring qilish:**
+```bash
+sudo apt install snort -y
+sudo snort -A console -i eth0 -c /etc/snort/snort.conf
+```
+
+✅ **Tarmoqda g‘ayrioddiy trafikni aniqlash**  
+✅ **Xavfsizlik qoidalarini avtomatik qo‘llash**  
+
+---
+
+## **10. Xulosa va tiklash bosqichlari**  
+
+### **🛡 Tiklash bosqichlari:**  
+1️⃣ **Hujum tahlili va zarar ko‘rgan tizimlarni aniqlash**  
+2️⃣ **Tizimni tarmoqdan ajratish va zararli kodlarni tozalash**  
+3️⃣ **Loglarni tahlil qilish va hujum mexanizmini aniqlash**  
+4️⃣ **Ochiq portlarni yopish va firewallni kuchaytirish**  
+5️⃣ **Zaxira nusxalardan tiklash va autentifikatsiyani kuchaytirish**  
+6️⃣ **Tizim va dasturiy ta’minotni yangilash**  
+7️⃣ **Monitoring va IDS/IPS tizimlarini o‘rnatish**  
+
+🔴 **Savol:** Sizda ushbu hujum **real CTF muhitidami yoki amaliy tahlil uchunmi?** Agar log fayllari yoki network trafik tahliliga ehtiyoj bo‘lsa, batafsil ko‘rib chiqishimiz mumkin!
