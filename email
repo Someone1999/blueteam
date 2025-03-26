@@ -1,0 +1,359 @@
+Blue Team CTF: Xodimlarning Elektron Pochta Manzillariga Kelayotgan Shubhali Xabarlarni Tahlil Qilish
+
+Agar xodimlarga shubhali elektron pochta xabarlari kelayotgan bo‘lsa, bu phishing (fişing), malware (zararli dasturiy ta’minot) yoki social engineering hujumi bo‘lishi mumkin. Ushbu vaziyatni Blue Team nuqtayi nazaridan tahlil qilib, zararli xabarlarni aniqlash va oldini olish kerak.
+
+
+---
+
+1. Elektron pochta manbasini tahlil qilish
+
+Birinchi bosqichda, elektron pochta headerlarini (sarlavha) tekshirish muhim.
+
+✅ Header ma’lumotlarini olish:
+
+Gmail: Xatni oching → More (uch nuqta) → Show original
+
+Outlook: Xatni tanlang → File → Properties → Internet Headers
+
+Thunderbird: Ctrl + U
+
+
+Muhim tahlil qilinadigan header maydonlari:
+
+Return-Path: attacker@malicious-domain.com
+Received: from [192.168.1.100] by mailserver.com
+X-Mailer: Microsoft Outlook Express 6.00.2900.5512
+Subject: Urgent! Update your password
+From: "IT Support" <support@malicious-domain.com>
+Reply-To: "Hacker" <hacker@phishing.com>
+
+Zaiflik va tahdidlar:
+
+"From" sohasida noto‘g‘ri yoki qalbaki manzil
+
+"Reply-To" manzili haqiqiy domen bilan mos kelmaydi
+
+Shubhali IP manzillar ("Received" qatorlarida)
+
+Zararli X-Mailer yoki User-Agent ma’lumotlari
+
+
+Shubhali domenni tekshirish
+
+Elektron pochtada keltirilgan domen phishing yoki zararli domen ekanligini tekshirish uchun VirusTotal yoki MXToolBox kabi vositalardan foydalanish mumkin:
+
+whois malicious-domain.com
+dig malicious-domain.com
+
+Agar domen yaqinda yaratilgan bo‘lsa yoki DNS rekordlari shubhali bo‘lsa, bu phishing domen bo‘lish ehtimoli katta.
+
+
+---
+
+2. Elektron pochta tarkibini tahlil qilish
+
+A. Zararli linklarni tekshirish
+
+HTML formatida yashirin linklar bo‘lishi mumkin:
+
+<a href="http://malicious-site.com">Click here to update your password</a>
+
+Manzil ustiga sichqoncha olib borsangiz, URL boshqa domen ekanligini ko‘rish mumkin.
+
+
+✅ Linklarni tahlil qilish uchun quyidagi vositalardan foydalaning:
+
+VirusTotal
+
+URLScan.io
+
+PhishTank
+
+
+B. Ilovalarni tekshirish (Attachments)
+Ko‘pincha zararli xatlar ilova (attachment) sifatida zararli fayllarni jo‘natadi. Masalan:
+
+Zararli Word, Excel yoki PDF hujjatlar:
+
+invoice_urgent.docm
+salary_update.xlsm
+important_notice.pdf
+
+Zararli bajariluvchi fayllar:
+
+setup.exe
+payment_details.scr
+
+
+✅ Zararli ilovalarni tahlil qilish vositalari:
+
+1. VirusTotal – faylni yuklab zararli ekanligini tekshirish
+
+
+2. CyberChef – faylni dekodlash va analiz qilish
+
+
+3. OleTools – zararli macro kodlarni tekshirish
+
+oleid invoice_urgent.docm
+
+
+
+
+---
+
+3. Zararli pochta orqali kelgan zararli dasturlarni tahlil qilish
+
+Agar elektron pochta orqali malware yoki exploits jo‘natilgan bo‘lsa, ularni tahlil qilish kerak.
+
+A. Base64 shifrlangan kodlarni tekshirish
+Ko‘p hollarda zararli hujjatlar yoki phishing sahifalar Base64 yoki XOR shifrlash bilan yashiriladi.
+
+echo "dmlhIGVtYWlsIHZpYSBtYWxpY2lvdXM=" | base64 -d
+
+B. PowerShell yoki VBA makrosini tahlil qilish
+Makro hujumlarini tekshirish uchun oletools yoki CyberChef ishlatiladi:
+
+olevba invoice_urgent.docm
+
+
+---
+
+4. Xodimlarga yetkazilgan zarar va xatarni baholash
+
+Agar xodim phishing xabariga bosgan bo‘lsa yoki zararli faylni ochgan bo‘lsa:
+
+✅ Zararni baholash uchun:
+
+Windows Event Log tekshirish:
+
+Get-EventLog -LogName Security -Newest 20
+
+Linux loglarini tekshirish:
+
+sudo cat /var/log/auth.log | grep "login"
+
+Zararli trafikni aniqlash uchun tcpdump ishlatish:
+
+sudo tcpdump -i eth0 port 80 or port 443
+
+
+
+---
+
+5. Himoya choralarini ko‘rish
+
+✅ SPF, DKIM va DMARC sozlamalarini kuchaytirish
+SPF, DKIM va DMARC – zararli elektron pochtalarning kelishiga to‘sqinlik qiladigan xavfsizlik mexanizmlari.
+
+dig TXT mycompany.com  # SPF qayd yozuvlarini tekshirish
+
+Agar SPF yo‘q yoki zaif bo‘lsa, quyidagi kabi qo‘shish kerak:
+
+v=spf1 ip4:192.168.1.10 -all
+
+✅ Xodimlarni ogohlantirish va phishing hujumlarga qarshi o‘qitish
+
+"Agar siz shubhali elektron pochta xabarini olgan bo‘lsangiz, unga javob bermang va IT bo‘limiga xabar bering"
+
+Shubhali havolalarga bosmaslik va ilovalarni ochmaslik haqida tushuntirish
+
+
+✅ Antivirus va EDR tizimlarini yangilash
+
+Windows Defender ATP yoki CrowdStrike Falcon kabi Endpoint Detection and Response (EDR) tizimlarini o‘rnatish
+
+Zararlangan qurilmalarni ajratish va monitoring qilish
+
+
+✅ Spam-filtrlarni kuchaytirish
+
+sudo apt install spamassassin
+sudo systemctl enable spamassassin --now
+
+
+---
+
+Xulosa
+
+🔹 Shubhali elektron pochta xabarlari tahlili bosqichlari:
+
+1️⃣ Elektron pochta headerlarini o‘rganish va phishing domenlarini tekshirish
+2️⃣ Zararli linklar va ilovalarni tahlil qilish
+3️⃣ Zararli kod va malware mavjudligini aniqlash
+4️⃣ Xodimlarga yetkazilgan zararlarni tahlil qilish va tizim loglarini tekshirish
+5️⃣ Himoya choralarini kuchaytirish va xodimlarni ogohlantirish
+
+✅ Savol: Sizga konkret elektron pochta xabarining headerlari yoki ilova fayllari kerak bo‘lsa, ularni tahlil qilib berishim mumkin!
+
+Blue Team Elektron Pochta Tahlili – Real Misol
+
+Aytaylik, kompaniya xodimlaridan biri shubhali elektron pochta xabarini qabul qildi. Uning header ma’lumotlari va tarkibi quyidagicha bo‘lishi mumkin:
+
+
+---
+
+1. Elektron pochta xabarining umumiy ko‘rinishi
+
+Mavzu (Subject): URGENT: Your Account Will Be Suspended!
+
+Jo‘natuvchi (From): support@paypal-security.com
+
+Xodimga ko‘ringan manzil: support@paypal.com
+
+Xabar tarkibi:
+
+Dear Customer,
+
+We have noticed unusual activity on your account. Please verify your identity within 24 hours to avoid suspension.
+
+Click below to update your account:
+
+[Update Your Account](http://pay-pal-security.com/login)
+
+Best regards,  
+PayPal Security Team
+
+
+---
+
+2. Elektron pochta headerlarini tahlil qilish
+
+Elektron pochtaning texnik tafsilotlarini tekshiramiz:
+
+Return-Path: <hacker@malicious.com>
+Received: from mail-malicious.com ([198.51.100.25])
+    by mail.company.com with SMTP;
+X-Mailer: Microsoft Outlook Express 6.00.2900.5512
+Subject: URGENT: Your Account Will Be Suspended!
+From: "PayPal Support" <support@paypal-security.com>
+Reply-To: <hacker@malicious.com>
+
+📌 Zaiflik va shubhali belgilar:
+
+✅ "From" manzili: support@paypal-security.com, lekin asl PayPal manzili emas (o‘zini PayPal deb ko‘rsatgan).
+✅ "Return-Path" va "Reply-To": Ular hacker@malicious.com domeniga ishora qilmoqda.
+✅ "Received from" qatorida: Elektron pochta 198.51.100.25 IP manzilidan kelgan, bu ruxsatsiz server bo‘lishi mumkin.
+
+✅ Domenni tekshiramiz:
+
+whois paypal-security.com
+dig paypal-security.com
+
+Natijada, domen yaqinda ro‘yxatdan o‘tgan yoki PayPal’ga aloqador emas ekanligi aniqlanadi.
+
+
+---
+
+3. Zararli linkni tahlil qilish
+
+Xabar tarkibida "Update Your Account" tugmasi bor. Uni sichqoncha bilan ustiga olib borib, asl manzilni tekshiramiz:
+
+http://pay-pal-security.com/login
+
+Bu rasmiy paypal.com sayti emas!
+
+✅ Linkni tekshirish uchun VirusTotal va URLScan ishlatamiz:
+
+curl -s -L http://pay-pal-security.com/login | grep "form"
+
+Agar bu sayt phishing sahifa bo‘lsa, ichida foydalanuvchi nomi va parolni so‘rovchi form mavjud bo‘ladi.
+
+
+---
+
+4. Zararli ilovalarni tahlil qilish
+
+Ko‘p hollarda phishing xatlari ilovalar bilan birga keladi. Faraz qilaylik, ushbu pochta fayl ilova qilib invoice.pdf.exe ni jo‘natgan.
+
+✅ Faylni VirusTotal orqali skaner qilamiz:
+
+sha256sum invoice.pdf.exe
+
+Sha256 kodini VirusTotal yoki HybridAnalysis’da tekshiramiz.
+
+✅ Faylni Dynamic Analysis qilish:
+
+strings invoice.pdf.exe | grep "http"
+
+Agar natijada shubhali domenlar chiqsa, bu zararli dastur ekanligini ko‘rsatadi.
+
+
+---
+
+5. Elektron pochta orqali kelgan zararli kodlarni tahlil qilish
+
+Agar pochta VBA makrosli Excel yoki Word hujjati bo‘lsa, oletools yordamida tekshiramiz:
+
+olevba invoice.xlsm
+
+Agar AutoOpen yoki Shell() funksiyalarini o‘z ichiga olgan zararli VBA kodlar bo‘lsa, hujjat phishing ekanligi tasdiqlanadi.
+
+
+---
+
+6. Zararni baholash va zararlangan tizimlarni tekshirish
+
+Agar xodim phishing havolasiga bossa yoki zararli faylni ishga tushirsa, quyidagilarni tekshirish kerak:
+
+✅ Tarmoq trafikini tekshirish (tcpdump):
+
+sudo tcpdump -i eth0 host 198.51.100.25
+
+Agar zararli serverga ma’lumot yuborilayotgan bo‘lsa, uni aniqlaymiz.
+
+✅ Linux yoki Windows loglarini tekshirish:
+
+Get-EventLog -LogName Security -Newest 20
+
+Yangi admin huquqlari berilgan yoki noxush loglar bo‘lsa, ularni tekshirish kerak.
+
+
+---
+
+7. Himoya choralari va oldini olish
+
+1️⃣ Shubhali domenlarni tarmoqda bloklash
+
+sudo ufw deny out to 198.51.100.25
+
+2️⃣ Spam va phishing filtrlashni kuchaytirish
+SPF, DKIM, DMARC sozlamalarini tekshirish va kuchaytirish kerak.
+
+3️⃣ Xodimlarni ogohlantirish
+
+Hech qachon shubhali linklarga bormaslik
+
+Parolni 2FA (two-factor authentication) bilan himoya qilish
+
+Shubhali pochta xabarlarini IT bo‘limiga xabar berish
+
+
+
+---
+
+🔹 Xulosa: Bu phishing hujumi
+
+✅ Jo‘natuvchi soxta (From: PayPal Support)
+✅ Zararli link (Fake login sahifa)
+✅ Zararli ilova (exe fayl)
+✅ Xodimlarga zarar yetkazish ehtimoli bor
+
+
+---
+
+🔴 Sizning navbatdagi harakatingiz qanday?
+
+Agar siz real CTF muhitida bo‘lsangiz, sizdan:
+
+Header ma’lumotlarini olish va tahlil qilish
+
+URL va ilovalarni tahlil qilish
+
+Zararli jarayonlarni topish va bloklash
+
+Hujumning oldini olish strategiyasini tavsiya qilish
+
+
+kabilarni bajarish so‘ralishi mumkin. Agar sizda aniq phishing pochta namunasi bo‘lsa, uni tahlil qilib berishim mumkin!
+
