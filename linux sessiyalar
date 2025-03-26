@@ -1,0 +1,129 @@
+In Linux, user sessions can be monitored and managed using various commands and log files. Here are some key ways to check user-created sessions:
+
+
+---
+
+1️⃣ Checking Active Sessions (who, w, last, utmp, etc.)
+
+🔹 View Currently Logged-in Users
+
+who
+
+or
+
+w
+
+Shows active users and their session details.
+
+
+🔹 View User Login History
+
+last
+
+Displays the list of user logins, showing timestamps and session duration.
+
+
+🔹 Check Active User Sessions (utmp file)
+
+who /var/run/utmp
+
+utmp file keeps track of current user sessions.
+
+
+
+---
+
+2️⃣ Checking User Sessions from Logs (auth.log & journalctl)
+
+🔹 View Login Attempts from auth.log
+
+(Ubuntu/Debian-based systems)
+
+sudo cat /var/log/auth.log | grep "session opened"
+
+or
+
+sudo grep "session" /var/log/auth.log
+
+Shows when user sessions are opened and closed.
+
+
+🔹 View Session History using journalctl
+
+(RHEL-based systems)
+
+journalctl _SYSTEMD_UNIT=systemd-logind.service | grep "session"
+
+Displays logs related to user session activities.
+
+
+
+---
+
+3️⃣ Checking Active User Sessions via systemctl
+
+loginctl list-sessions
+
+Shows all active sessions, including remote SSH and local logins.
+
+
+loginctl show-session <SESSION_ID>
+
+Get detailed information about a specific user session.
+
+
+
+---
+
+4️⃣ Checking SSH Sessions
+
+🔹 Active SSH Connections
+
+who | grep pts
+
+Lists users connected via SSH.
+
+
+or
+
+ss -tnp | grep sshd
+
+Displays active SSH connections.
+
+
+🔹 View SSH Login History
+
+last | grep "sshd"
+
+Shows past SSH logins.
+
+
+
+---
+
+5️⃣ Killing a User Session
+
+If you need to terminate a user session:
+
+sudo pkill -KILL -u <username>
+
+or
+
+sudo loginctl terminate-session <SESSION_ID>
+
+Kills a specific user session.
+
+
+
+---
+
+🔴 Conclusion
+
+To monitor user-created sessions in Linux:
+✅ Use who, w, last for live sessions
+✅ Check /var/log/auth.log or journalctl for session history
+✅ Use loginctl to manage systemd sessions
+✅ Monitor SSH connections with ss or who | grep pts
+
+Would you like help with a specific session analysis case?
+
