@@ -1,0 +1,144 @@
+Blue Team CTF: Tajovuzkorlar Qo‘lga Kiritgan Kompyuterlarga Buyruqlar Yubormoqda – Hujumni Aniqlash va Bartaraf Etish
+
+Agar tajovuzkorlar kompaniyaning tarmog‘idagi kompyuterlarni boshqarishga muvaffaq bo‘lgan bo‘lsa, bu Command & Control (C2) hujumiga ishora qiladi. Ushbu hujumni aniqlash va oldini olish uchun quyidagi amallarni bajarish kerak:
+
+
+---
+
+1. C2 Trafikni Aniqlash (Network Forensics)
+
+Tajovuzkorlar odatda PowerShell, netcat yoki boshqa vositalar orqali serverga buyruqlar yuborishadi. tcpdump yoki Wireshark yordamida shubhali trafikni tahlil qilamiz.
+
+🛠 TCPDump yordamida tarmoq trafikini yozib olish
+
+sudo tcpdump -i eth0 -w infected_traffic.pcap
+
+Bu tarmoqdagi barcha paketlarni .pcap formatida saqlaydi.
+
+📌 Maqsadli hujum trafikini tahlil qilish
+
+sudo tcpdump -i eth0 host 192.168.1.100
+
+Agar 192.168.1.100 tajovuzkorlar bilan bog‘langan kompyuter bo‘lsa, uning trafigini kuzatamiz.
+
+✅ Shubhali aloqalarni topish uchun:
+
+sudo tcpdump -i eth0 port 4444 or port 8080
+
+Metasploit yoki Netcat orqali C2 hujumi ko‘pincha 4444 yoki 8080 portlaridan foydalanadi.
+
+
+---
+
+2. Tajovuzkor yuborayotgan buyruqlarni aniqlash
+
+Agar tajovuzkor PowerShell, bash yoki CMD orqali buyruqlar yuborayotgan bo‘lsa, biz ularni log-fayllardan topishimiz mumkin.
+
+📌 Linux tizimida buyruqlar logini tekshirish
+
+cat /var/log/auth.log | grep "session opened"
+cat /var/log/syslog | grep "nc "
+
+Agar netcat (nc) yoki boshqa ekspluatatsiya vositalari ishlatilgan bo‘lsa, loglar orqali topamiz.
+
+✅ Barcha shubhali buyruqlarni olish uchun:
+
+cat ~/.bash_history | tail -n 50
+
+Bu so‘nggi 50 ta buyruqni ko‘rsatadi.
+
+
+---
+
+📌 Windows tizimida buyruqlar logini tekshirish
+
+Windows tizimlarida PowerShell yoki CMD orqali jo‘natilgan zararli buyruqlarni Event Viewer yordamida aniqlash mumkin.
+
+Get-WinEvent -LogName Security | Where-Object { $_.ID -eq 4688 }
+
+Bu yaratilgan yangi jarayonlar (processlar) haqida ma’lumot beradi.
+
+✅ PowerShell loglarini ko‘rish:
+
+Get-WinEvent -LogName "Microsoft-Windows-PowerShell/Operational" | Select-String "Invoke-WebRequest"
+
+Agar tajovuzkor PowerShell orqali zararli skriptlarni yuklayotgan bo‘lsa, bu buyruq uni ko‘rsatadi.
+
+
+---
+
+3. C2 Aloqalarini Tekshirish
+
+📌 Linux va Windows-da tarmoq aloqalarini tekshirish
+
+Agar tajovuzkorlar kompyuterni C2 serverga ulab, unga buyruqlar yuborayotgan bo‘lsa, biz ushbu aloqalarni netstat yoki ss vositalari yordamida topishimiz mumkin.
+
+✅ Linux tizimida shubhali TCP sessiyalarni topish
+
+netstat -antp | grep ESTABLISHED
+
+Bu buyruq o‘rnatilgan (ESTABLISHED) aloqalarni ko‘rsatadi.
+
+✅ Windows-da faol aloqalarni ko‘rish
+
+netstat -ano | findstr ESTABLISHED
+
+Shubhali IP manzil yoki port borligini tekshiramiz.
+
+
+---
+
+4. Jarayonlarni tekshirish va zararli faoliyatni to‘xtatish
+
+Agar tajovuzkorlar zararli dasturlarni ishga tushirgan bo‘lsa, biz ularni jarayonlar ro‘yxati (process list) orqali topamiz.
+
+📌 Linux-da faol jarayonlarni tekshirish
+
+ps aux | grep python
+
+Ko‘p hollarda tajovuzkorlar Python orqali reverse shell ishga tushirishadi.
+
+✅ Shubhali jarayonlarni to‘xtatish
+
+kill -9 <PID>
+
+<PID> o‘rniga zararli jarayonning identifikatori (ID) yoziladi.
+
+📌 Windows-da faol jarayonlarni tekshirish
+
+Get-Process | Where-Object { $_.ProcessName -like "*powershell*" }
+
+Agar shubhali PowerShell ishlayotgan bo‘lsa, uni to‘xtatamiz:
+
+Stop-Process -Id <PID> -Force
+
+
+---
+
+5. Hujumni Bartaraf Etish
+
+✅ Shubhali jarayonlarni to‘xtatish
+✅ C2 Serverga borayotgan trafikni bloklash
+
+sudo ufw deny out to <C2_IP>
+
+✅ Administrator parollarini almashtirish
+✅ Windows Defender yoki Linux ClamAV orqali zararli fayllarni tozalash
+
+clamscan -r /home/
+
+✅ Xodimlarga fishing va social engineering hujumlariga qarshi trening o‘tkazish
+
+
+---
+
+🔴 Xulosa: Hujumni qanday bartaraf etish kerak?
+
+1️⃣ Trafikni tahlil qilish (tcpdump / Wireshark / netstat)
+2️⃣ Tajovuzkor yuborgan buyruqlarni log-fayllardan topish
+3️⃣ C2 Serverga bog‘langan tarmoq aloqalarini bloklash
+4️⃣ Shubhali jarayonlarni o‘ldirish (kill / Stop-Process)
+5️⃣ Zararli dasturlarni topish va tizimni tozalash
+
+✅ Agar sizda shubhali IP-manzillar, zararli skriptlar yoki real tarmoq loglari bo‘lsa, ularni tahlil qilib berishim mumkin!
+
