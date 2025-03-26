@@ -1,0 +1,266 @@
+Docker Commands for Blue Team (Security & Incident Response)
+
+As a Blue Team member, monitoring and securing Docker containers is essential for detecting and mitigating attacks. Below are important Docker commands for security monitoring, incident response, and forensic analysis.
+
+
+---
+
+1️⃣ Active Container & Process Monitoring
+
+🔹 List Running Containers
+
+docker ps
+
+Shows active containers, including their IDs, images, and ports.
+
+✅ Look for unexpected or unauthorized containers.
+
+
+🔹 List All Containers (Including Stopped Ones)
+
+docker ps -a
+
+Useful for detecting past malicious activity.
+
+
+🔹 View Running Processes in a Container
+
+docker top <container_id>
+
+Detect if a hacker is running hidden processes inside a container.
+
+
+🔹 Check Container Resource Usage (CPU, Memory, Network, Disk)
+
+docker stats
+
+Look for high resource usage, which may indicate crypto mining or malware execution.
+
+
+
+---
+
+2️⃣ Investigating Suspicious Containers
+
+🔹 View Logs of a Container
+
+docker logs <container_id>
+
+Analyze unexpected log entries that may indicate a breach.
+
+
+🔹 Check Environment Variables
+
+docker exec <container_id> env
+
+Attackers may store credentials or API keys in environment variables.
+
+
+🔹 Inspect a Container’s Configuration & Metadata
+
+docker inspect <container_id>
+
+Reveals network settings, volume mappings, and security settings.
+
+Look for:
+
+Privileged mode (Privileged: true) – High-risk setting
+
+Unexpected mounted volumes
+
+Suspicious network settings
+
+
+
+
+---
+
+3️⃣ Network Security & Connections
+
+🔹 List Active Network Connections (for C2 Detection)
+
+docker exec <container_id> netstat -tulnp
+
+Look for unexpected outbound connections (C2 servers, reverse shells).
+
+
+🔹 Check All Docker Networks
+
+docker network ls
+
+Identify unauthorized or suspicious Docker networks.
+
+
+🔹 Inspect a Specific Network
+
+docker network inspect <network_id>
+
+Look for containers communicating outside of expected boundaries.
+
+
+
+---
+
+4️⃣ File System & Malware Analysis
+
+🔹 List Files & Directories in a Running Container
+
+docker exec <container_id> ls -lah /path/to/directory
+
+Look for unexpected files, such as malware droppers.
+
+
+🔹 Copy Files From a Container (Forensic Analysis)
+
+docker cp <container_id>:/path/to/file /local/path/
+
+Extract suspicious files for malware analysis.
+
+
+🔹 Compare File Changes Since Image Creation
+
+docker diff <container_id>
+
+Detect unexpected file modifications (e.g., web shells, rootkits).
+
+
+
+---
+
+5️⃣ Detecting Privileged Containers & Security Risks
+
+🔹 Identify Containers Running in Privileged Mode
+
+docker inspect --format='{{.HostConfig.Privileged}}' <container_id>
+
+Privileged containers can access the host system (high security risk).
+
+
+🔹 Check for Dangerous Capabilities in a Container
+
+docker inspect --format='{{.HostConfig.CapAdd}}' <container_id>
+
+Look for added capabilities like SYS_ADMIN, which can be abused.
+
+
+🔹 Check for Mounted Volumes (Data Exfiltration Risks)
+
+docker inspect --format='{{.Mounts}}' <container_id>
+
+Detect unauthorized host file access.
+
+
+
+---
+
+6️⃣ Responding to a Security Incident
+
+🔹 Stop a Suspicious Container
+
+docker stop <container_id>
+
+Gracefully stops the container.
+
+
+🔹 Kill a Malicious Container Immediately
+
+docker kill <container_id>
+
+For emergency response (terminates the process forcefully).
+
+
+🔹 Remove a Malicious Container
+
+docker rm <container_id>
+
+Ensure the container does not restart.
+
+
+🔹 Remove a Suspicious Docker Image
+
+docker rmi <image_id>
+
+Prevents relaunching a compromised image.
+
+
+
+---
+
+7️⃣ Log Analysis & Auditing
+
+🔹 View Docker System Logs (Host Level Logs)
+
+journalctl -u docker --no-pager | tail -n 50
+
+Helps identify unauthorized API calls or unusual activity.
+
+
+🔹 Check Security Events in Container Logs
+
+docker logs <container_id> | grep -i "error\|failed\|unauthorized"
+
+Filters for login failures, permission errors, and unauthorized access attempts.
+
+
+🔹 Monitor Real-Time Logs of a Container
+
+docker logs -f <container_id>
+
+Useful for live monitoring of potential attacks.
+
+
+
+---
+
+8️⃣ Hardening Docker Security (Preventative Measures)
+
+🔹 Ensure Docker Daemon is Running as Non-Root User
+
+ps aux | grep dockerd
+
+Docker should not run as root for better security.
+
+
+🔹 Enable User Namespace Isolation
+
+cat /etc/docker/daemon.json | grep "userns-remap"
+
+Prevents privilege escalation attacks.
+
+
+🔹 Use Secure Docker Image Sources
+
+docker images | grep -v "official"
+
+Avoid untrusted third-party images.
+
+
+🔹 Scan for Vulnerabilities in Docker Images
+
+docker scan <image_name>
+
+Identifies known security vulnerabilities in images.
+
+
+🔹 List Installed Plugins (Detect Unauthorized Plugins)
+
+docker plugin ls
+
+Attackers may install malicious plugins for persistence.
+
+
+
+---
+
+🔴 Conclusion
+
+As a Blue Team member, these commands help:
+
+✅ Monitor running containers (Processes, logs, network activity)
+✅ Investigate incidents (File changes, network connections, privilege escalation)
+✅ Stop malicious containers (Kill, remove, clean logs)
+✅ Harden security (Restrict permissions, scan images, enforce policies)
+
+Would you like help analyzing a specific security event in Docker?
+
+ 
